@@ -13,7 +13,7 @@ npx expo start
 
 Abra no Expo Go (Android/iOS) pelo QR code, ou pressione `w` para o navegador.
 
-> **A partir da Fase 3 a área do porteiro precisa de development build.** `react-native-vision-camera`
+> **A partir da Fase 3 a área do porteiro precisa de development build.** `react-native-vision-camera` (v5, Nitro)
 > e `@react-native-ml-kit/text-recognition` têm código nativo que não existe no Expo Go. As telas de
 > login, morador e síndico continuam abrindo no Expo Go; a aba Receber não.
 
@@ -38,10 +38,36 @@ npx eas-cli@latest build --profile development --platform android
 criado por `npx eas-cli@latest build:configure`; exige `expo-dev-client` instalado). Depois de instalar o
 build, rode `npx expo start` e abra o app instalado (não o Expo Go).
 
-Permissões (configuradas pelo config plugin do vision-camera no `app.json`):
-- Android: `android.permission.CAMERA`.
-- iOS: `NSCameraUsageDescription` = "O enKomenda usa a câmera para fotografar as etiquetas das encomendas recebidas na portaria."
-- Microfone, localização, frame processors e leitor de código estão desligados (a Fase 4 liga `enableCodeScanner` para o QR).
+Identificador do app: `br.app.enkomenda` (`android.package` e `ios.bundleIdentifier` no `app.json`).
+
+Câmera: VisionCamera **v5** (Nitro Modules) - `react-native-vision-camera`, `react-native-nitro-modules`,
+`react-native-nitro-image` e, só no Android, `react-native-vision-camera-barcode-scanner` (ML Kit) para o QR.
+No iOS o QR usa a detecção nativa do próprio VisionCamera (`useObjectOutput`, AVFoundation); o pacote do
+leitor fica fora do autolinking do iOS (`package.json` > `expo.autolinking.ios.exclude`) porque ele exige
+`GoogleMLKit` 9.0.0 e o OCR (`@react-native-ml-kit/text-recognition`) exige 8.0.0 - o CocoaPods não resolve os dois.
+A escolha por plataforma está em `src/retirada/ui/useSaidaQR.ts` (Android) / `useSaidaQR.ios.ts` (iOS).
+As versões dos pacotes `react-native-vision-camera*` ficam fixas e iguais (atualize todas juntas).
+
+Permissões (a v5 **não tem config plugin**; ficam direto no `app.json`):
+- Android: `android.permissions` = `android.permission.CAMERA`.
+- iOS: `ios.infoPlist.NSCameraUsageDescription` = "O enKomenda usa a câmera para fotografar as etiquetas das encomendas recebidas na portaria e ler o QR de retirada dos moradores."
+- Sem microfone e sem localização.
+
+#### Primeiro build nativo depois da migração (v4 → v5 e troca de bundle id)
+
+1. `npx expo prebuild --clean` (obrigatório: muda o identificador, sai o plugin da v4 e entram módulos Nitro).
+   No iOS apague também `ios/Pods` e `Podfile.lock` se existirem, e rode `pod install` do zero.
+2. iOS: conferir que o `pod install` **não** lista `VisionCameraBarcodeScanner` nem `GoogleMLKit/BarcodeScanning`
+   (só `GoogleMLKit/TextRecognition*` 8.0.0), e que o deployment target é >= 15.5.
+3. Android: conferir no `AndroidManifest.xml` gerado a permissão `CAMERA` e nenhuma de áudio/localização;
+   `applicationId`/`namespace` = `br.app.enkomenda`.
+4. Como o id mudou, o app instala como **outro app** (o antigo `br.com.kds.enkomenda` continua no aparelho
+   com seus dados). Desinstale o antigo. Credenciais que dependam do id (Firebase/Google, EAS, App Store
+   Connect, Play Console, links universais) precisam ser refeitas para `br.app.enkomenda`.
+5. Testar no aparelho: tela de permissão (permitir, negar, negar de vez → "Abrir configurações"),
+   rajada de fotos na aba Receber (uma captura por vez, flash + vibração, sem som do obturador, arquivo JPEG
+   processado pelo OCR), pausa ao trocar de aba / ir para segundo plano, leitura de QR na Retirada
+   (Android = ML Kit, iOS = AVFoundation) e a trava de QR repetido.
 
 Sempre que mudar `app.json`/plugins ou instalar pacote com código nativo, gere o build de novo.
 

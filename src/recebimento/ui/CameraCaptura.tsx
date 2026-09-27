@@ -1,7 +1,13 @@
 import { useCallback, useRef, useState } from 'react';
 import { Animated, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
+import {
+  Camera,
+  useCameraDevice,
+  useCameraDevices,
+  useCameraPermission,
+  usePhotoOutput,
+} from 'react-native-vision-camera';
 
 import { Botao } from '../../components/Botao';
 import { cores } from '../../theme';
@@ -11,39 +17,47 @@ interface Props {
   ativo: boolean;
   /** Recebe o caminho da foto recem-tirada. Deve retornar na hora (o processamento e em segundo plano). */
   onFoto: (caminho: string) => void;
+  /** Rotulo de acessibilidade do disparo. Padrao: "Fotografar etiqueta". */
+  rotuloDisparo?: string;
+  /** Explicacao antes de pedir a permissao. Padrao: texto das etiquetas. */
+  motivoPermissao?: string;
 }
 
 /**
  * Camera de captura continua: um toque no botao = uma etiqueta. Sem telas intermediarias;
  * o retorno e so um flash branco e uma vibracao curta.
  */
-export function CameraCaptura({ ativo, onFoto }: Props) {
-  const { hasPermission, requestPermission } = useCameraPermission();
+export function CameraCaptura({
+  ativo,
+  onFoto,
+  rotuloDisparo = 'Fotografar etiqueta',
+  motivoPermissao = 'O enKomenda usa a câmera para fotografar as etiquetas das encomendas que chegam na portaria.',
+}: Props) {
+  const { hasPermission, canRequestPermission, requestPermission } = useCameraPermission();
+  // A lista de cameras carrega de forma assincrona na v5: lista vazia = ainda carregando.
+  const cameras = useCameraDevices();
   const device = useCameraDevice('back');
-  const camera = useRef<Camera>(null);
-  const [pedido, setPedido] = useState<'nunca' | 'negado'>('nunca');
+  // JPEG explicito (o 'native' do iOS seria HEIC; a fila grava .jpg). 'speed' = disparo rapido em rajada.
+  const photoOutput = usePhotoOutput({ containerFormat: 'jpeg', qualityPrioritization: 'speed' });
+  // Sem permissao e sem poder pedir de novo (negada de vez / restrita): so pelas configuracoes.
+  const negado = !canRequestPermission;
   const [capturando, setCapturando] = useState(false);
   const capturandoRef = useRef(false);
   const [erro, setErro] = useState<string | null>(null);
   const flash = useRef(new Animated.Value(0)).current;
 
-  const pedirPermissao = useCallback(async () => {
-    const ok = await requestPermission();
-    if (!ok) setPedido('negado');
-  }, [requestPermission]);
-
   const disparar = useCallback(async () => {
     // Uma captura por vez: toques durante a captura sao ignorados.
-    if (capturandoRef.current || !camera.current) return;
+    if (capturandoRef.current) return;
     capturandoRef.current = true;
     setCapturando(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     flash.setValue(1);
     Animated.timing(flash, { toValue: 0, duration: 180, useNativeDriver: true }).start();
     try {
-      const foto = await camera.current.takePhoto({ flash: 'off', enableShutterSound: false });
+      const foto = await photoOutput.capturePhotoToFile({ flashMode: 'off', enableShutterSound: false }, {});
       setErro(null);
-      onFoto(foto.path);
+      onFoto(foto.filePath);
     } catch {
       setErro('Não foi possível tirar a foto. Tente de novo.');
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -51,24 +65,28 @@ export function CameraCaptura({ ativo, onFoto }: Props) {
       capturandoRef.current = false;
       setCapturando(false);
     }
-  }, [flash, onFoto]);
+  }, [flash, onFoto, photoOutput]);
 
   if (!hasPermission) {
     return (
       <View style={[styles.area, styles.aviso]}>
         <Text style={styles.avisoTitulo}>Precisamos da câmera</Text>
         <Text style={styles.avisoTexto}>
-          {pedido === 'negado'
-            ? 'O acesso à câmera foi negado. Libere a permissão nas configurações do aparelho para fotografar as etiquetas.'
-            : 'O enKomenda usa a câmera para fotografar as etiquetas das encomendas que chegam na portaria.'}
+          {negado
+            ? 'O acesso à câmera foi negado. Libere a permissão nas configurações do aparelho.'
+            : motivoPermissao}
         </Text>
-        {pedido === 'negado' ? (
+        {negado ? (
           <Botao titulo="Abrir configurações" onPress={() => void Linking.openSettings()} />
         ) : (
-          <Botao titulo="Permitir câmera" onPress={() => void pedirPermissao()} />
+          <Botao titulo="Permitir câmera" onPress={() => void requestPermission()} />
         )}
       </View>
     );
+  }
+
+  if (cameras.length === 0) {
+    return <View style={styles.area} />;
   }
 
   if (!device) {
@@ -83,12 +101,10 @@ export function CameraCaptura({ ativo, onFoto }: Props) {
   return (
     <View style={styles.area}>
       <Camera
-        ref={camera}
         style={StyleSheet.absoluteFill}
         device={device}
         isActive={ativo}
-        photo
-        photoQualityBalance="speed"
+        outputs={[photoOutput]}
         onError={(e) => setErro(e.message)}
       />
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.flash, { opacity: flash }]} />
@@ -100,7 +116,7 @@ export function CameraCaptura({ ativo, onFoto }: Props) {
       <View style={styles.rodape}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Fotografar etiqueta"
+          accessibilityLabel={rotuloDisparo}
           onPress={() => void disparar()}
           disabled={!ativo}
           hitSlop={16}

@@ -21,7 +21,7 @@ export function pastaDaFila(): Directory {
   return pasta;
 }
 
-/** Garante o esquema file:// (a vision-camera devolve caminho puro no Android). */
+/** Garante o esquema file:// (a vision-camera v5 devolve caminho puro, sem file://, nas duas plataformas). */
 export function paraUri(caminho: string): string {
   return caminho.startsWith('file://') || caminho.includes('://') ? caminho : `file://${caminho}`;
 }

@@ -19,9 +19,12 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
+    "react-native-nitro-image": "^0.15.2",
+    "react-native-nitro-modules": "^0.37.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
-    "react-native-vision-camera": "^4.7.3",
+    "react-native-vision-camera": "5.2.3",
+    "react-native-vision-camera-barcode-scanner": "5.2.3",
     "react-native-web": "^0.21.2"
   },
   "devDependencies": {
@@ -41,6 +44,13 @@
       "reactNativeDirectoryCheck": {
         "exclude": [
           "@react-native-ml-kit/text-recognition"
+        ]
+      }
+    },
+    "autolinking": {
+      "ios": {
+        "exclude": [
+          "react-native-vision-camera-barcode-scanner"
         ]
       }
     }

@@ -4,17 +4,17 @@ import { cores } from '../../theme';
 
 interface Props {
   ativo: boolean;
-  onFoto: (caminho: string) => void;
-  rotuloDisparo?: string;
-  motivoPermissao?: string;
+  onLeitura: (valor: string) => void;
+  aviso?: string | null;
+  enviando?: boolean;
 }
 
-/** Na web (so desenvolvimento) nao ha vision-camera: mostra um aviso no lugar da camera. */
-export function CameraCaptura(_props: Props) {
+/** Na web (so desenvolvimento) nao ha vision-camera: mostra um aviso no lugar do leitor. */
+export function LeitorQR(_props: Props) {
   return (
     <View style={styles.area}>
-      <Text style={styles.titulo}>Câmera indisponível no navegador</Text>
-      <Text style={styles.texto}>Use o development build no Android ou iOS para usar a câmera.</Text>
+      <Text style={styles.titulo}>Leitor de QR indisponível no navegador</Text>
+      <Text style={styles.texto}>Use o development build no Android ou iOS, ou os modos Código e Manual.</Text>
     </View>
   );
 }

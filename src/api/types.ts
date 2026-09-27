@@ -61,6 +61,9 @@ export interface TrocaContextoRequisicao {
 /** PENDENTE_IDENT = sem unidade (o porteiro resolve ou a IA tenta depois). */
 export type StatusEncomenda = 'PENDENTE_IDENT' | 'AGUARDANDO' | 'RETIRADA' | 'CANCELADA';
 
+/** Forma da baixa (retirada_metodo). */
+export type MetodoRetirada = 'QR' | 'CODIGO' | 'MANUAL';
+
 export type MetodoIdentificacao = 'REGEX' | 'NOME' | 'APRENDIZADO' | 'IA' | 'MANUAL';
 
 /** Encomenda como o porteiro ve (sem codigo de retirada). */
@@ -79,6 +82,11 @@ export interface Encomenda {
   metodo_ident: MetodoIdentificacao | null;
   recebida_em: string;
   recebida_por: string | null;
+  /** Data/hora da baixa, ou null (campos da Fase 4; opcionais em respostas antigas). */
+  retirada_em?: string | null;
+  retirada_metodo?: MetodoRetirada | null;
+  /** Nome do porteiro que deu a baixa, ou null. */
+  retirada_por?: string | null;
 }
 
 /** `dados` de GET /encomendas/{id}: encomenda + URL assinada da foto (30 min) ou null. */
@@ -104,4 +112,21 @@ export interface DefinirUnidadeRequisicao {
 export interface UnidadeBusca {
   id: number;
   descricao: string;
+}
+
+// ---- Retirada (API-Endpoints-Porteiro.md, "Retirada (baixa)") ----
+
+/** `dados` de POST /encomendas/retirada/qr | /codigo | /manual. */
+export interface RetiradaResposta {
+  retiradas: Encomenda[];
+  /** Codigos que nao estavam aguardando (ja retirados, invalidos ou de outra unidade). */
+  nao_encontrados: string[];
+}
+
+/** Corpo de POST /encomendas/retirada/manual. */
+export interface RetiradaManualRequisicao {
+  /** 1 a 50 ids, todos AGUARDANDO no condominio. */
+  encomenda_ids: number[];
+  /** JPEG de quem retira (ate 1,5 MB decodificado). */
+  foto_base64: string;
 }

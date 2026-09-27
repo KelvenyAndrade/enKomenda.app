@@ -8,10 +8,16 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "br.com.kds.enkomenda"
+      "bundleIdentifier": "br.app.enkomenda",
+      "infoPlist": {
+        "NSCameraUsageDescription": "O enKomenda usa a câmera para fotografar as etiquetas das encomendas recebidas na portaria e ler o QR de retirada dos moradores."
+      }
     },
     "android": {
-      "package": "br.com.kds.enkomenda",
+      "package": "br.app.enkomenda",
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -28,17 +34,7 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-status-bar",
-      [
-        "react-native-vision-camera",
-        {
-          "cameraPermissionText": "O enKomenda usa a câmera para fotografar as etiquetas das encomendas recebidas na portaria.",
-          "enableMicrophonePermission": false,
-          "enableLocation": false,
-          "enableFrameProcessors": false,
-          "enableCodeScanner": false
-        }
-      ]
+      "expo-status-bar"
     ],
     "scheme": "enkomenda"
   }
