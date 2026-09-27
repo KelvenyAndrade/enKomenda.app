@@ -12,9 +12,9 @@ interface Props {
   children?: ReactNode;
 }
 
-/** Tela provisoria da Fase 1: mostra o contexto ativo e o botao Sair. */
+/** Tela provisoria: mostra o contexto ativo, a troca de vinculo (se houver mais de um) e o botao Sair. */
 export function TelaPlaceholder({ titulo, descricao, children }: Props) {
-  const { sessao, sair } = useSession();
+  const { sessao, sair, iniciarTrocaDeVinculo } = useSession();
   const ctx = sessao?.contexto;
 
   return (
@@ -30,8 +30,13 @@ export function TelaPlaceholder({ titulo, descricao, children }: Props) {
           <Text style={styles.contextoTexto}>{sessao.usuario.nome}</Text>
           <Text style={styles.contextoSub}>
             {NOME_DO_PERFIL[ctx.perfil]} · {ctx.condominio_nome}
+            {ctx.unidade_descricao ? ` · ${ctx.unidade_descricao}` : ''}
           </Text>
         </View>
+      ) : null}
+
+      {sessao && sessao.vinculos.length > 1 ? (
+        <Botao titulo="Trocar condomínio/perfil" variante="secundario" onPress={() => void iniciarTrocaDeVinculo()} />
       ) : null}
 
       <Botao titulo="Sair" variante="secundario" onPress={() => void sair()} />

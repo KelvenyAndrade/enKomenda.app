@@ -16,16 +16,35 @@ export class ApiError extends Error {
   }
 }
 
-// Token atual e callback de 401, registrados pelo SessionProvider.
+/** Mensagem padrao quando a API revoga o acesso (vinculo/usuario/condominio bloqueado). */
+export const MENSAGEM_ACESSO_REVOGADO = 'Seu acesso foi revogado pelo síndico. Entre novamente.';
+
+/**
+ * Chamado quando a sessao deixa de valer no servidor: 401 com token ou 403 "Acesso revogado".
+ * `aviso` e a mensagem para a tela de login (null no 401).
+ */
+export type AoSessaoInvalida = (aviso: string | null) => void;
+
+// Token atual e callback de sessao invalida, registrados pelo SessionProvider.
 let tokenAtual: string | null = null;
-let aoNaoAutorizado: (() => void) | null = null;
+let aoSessaoInvalida: AoSessaoInvalida | null = null;
 
 export function definirToken(token: string | null): void {
   tokenAtual = token;
 }
 
-export function definirAoNaoAutorizado(fn: (() => void) | null): void {
-  aoNaoAutorizado = fn;
+export function definirAoSessaoInvalida(fn: AoSessaoInvalida | null): void {
+  aoSessaoInvalida = fn;
+}
+
+/** 403 da API para vinculo bloqueado: "Acesso revogado. Entre novamente." */
+function ehAcessoRevogado(status: number, mensagem: string | undefined): boolean {
+  if (status !== 403 || !mensagem) return false;
+  const normalizada = mensagem
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+  return normalizada.includes('acesso revogado');
 }
 
 type Metodo = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -39,7 +58,8 @@ interface Opcoes {
 /**
  * Faz a requisicao, valida o envelope `{sucesso, mensagem, dados}` e devolve `dados`.
  * Lanca ApiError com a `mensagem` quando `sucesso=false` ou status >= 400.
- * Em 401 com token enviado, limpa a sessao (volta ao login).
+ * Em 401 com token enviado, ou 403 "Acesso revogado", encerra a sessao (volta ao login).
+ * Outros 403 (ex.: "Vinculo nao encontrado ou inativo") apenas lancam o erro.
  */
 export async function requisicao<T>(metodo: Metodo, caminho: string, opcoes: Opcoes = {}): Promise<T> {
   if (!BASE_URL) {
@@ -49,8 +69,8 @@ export async function requisicao<T>(metodo: Metodo, caminho: string, opcoes: Opc
   const autenticado = opcoes.autenticado ?? true;
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (opcoes.body !== undefined) headers['Content-Type'] = 'application/json';
-  const enviouToken = autenticado && !!tokenAtual;
-  if (enviouToken) headers.Authorization = `Bearer ${tokenAtual}`;
+  const tokenEnviado = autenticado ? tokenAtual : null;
+  if (tokenEnviado) headers.Authorization = `Bearer ${tokenEnviado}`;
 
   const controle = new AbortController();
   const timer = setTimeout(() => controle.abort(), TIMEOUT_MS);
@@ -82,8 +102,14 @@ export async function requisicao<T>(metodo: Metodo, caminho: string, opcoes: Opc
     envelope = null;
   }
 
-  if (resposta.status === 401 && enviouToken && aoNaoAutorizado) {
-    aoNaoAutorizado();
+  // So encerra se o token enviado ainda for o atual (ignora respostas atrasadas de um token
+  // ja substituido por login ou troca de contexto).
+  if (tokenEnviado && tokenEnviado === tokenAtual && aoSessaoInvalida) {
+    if (resposta.status === 401) {
+      aoSessaoInvalida(null);
+    } else if (ehAcessoRevogado(resposta.status, envelope?.mensagem)) {
+      aoSessaoInvalida(envelope?.mensagem || MENSAGEM_ACESSO_REVOGADO);
+    }
   }
 
   if (!envelope || typeof envelope.sucesso !== 'boolean') {

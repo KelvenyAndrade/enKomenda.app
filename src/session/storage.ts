@@ -12,6 +12,8 @@ export interface Sessao {
   vinculos: Vinculo[];
   /** true quando ha mais de um vinculo e o usuario ainda nao escolheu qual usar. */
   escolhaPendente: boolean;
+  /** true quando a escolha foi aberta pelo usuario ("Trocar condominio/perfil") e pode ser cancelada. */
+  trocaVoluntaria?: boolean;
 }
 
 // Token e demais dados em chaves separadas (SecureStore tem limite pratico de tamanho por item).

@@ -18,7 +18,7 @@ import { rotaPara } from '../session/rotas';
 import { cores } from '../theme';
 
 export default function Login() {
-  const { sessao, entrar } = useSession();
+  const { sessao, aviso, entrar } = useSession();
   const [login, setLogin] = useState('');
   const [senha, setSenha] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -88,6 +88,13 @@ export default function Login() {
               editable={!enviando}
             />
 
+            {/* Sessao encerrada pelo servidor (ex.: acesso revogado pelo sindico). */}
+            {aviso && !erro ? (
+              <View style={styles.avisoCaixa} accessibilityLiveRegion="polite">
+                <Text style={styles.avisoTexto}>{aviso}</Text>
+              </View>
+            ) : null}
+
             {erro ? (
               <View style={styles.erroCaixa} accessibilityLiveRegion="polite">
                 <Text style={styles.erroTexto}>{erro}</Text>
@@ -129,6 +136,8 @@ const styles = StyleSheet.create({
   },
   erroCaixa: { backgroundColor: cores.erroFundo, borderRadius: 8, padding: 12, marginTop: 6 },
   erroTexto: { color: cores.erro, fontSize: 14 },
+  avisoCaixa: { backgroundColor: cores.erroFundo, borderRadius: 8, padding: 12, marginTop: 6 },
+  avisoTexto: { color: cores.erro, fontSize: 14, fontWeight: '600' },
   primeiroAcesso: { gap: 6, alignItems: 'stretch' },
   emBreve: { fontSize: 13, color: cores.textoSecundario, textAlign: 'center' },
 });
