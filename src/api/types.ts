@@ -55,3 +55,53 @@ export interface TrocaContextoRequisicao {
   perfil: Perfil;
   unidade_id?: number;
 }
+
+// ---- Recebimento (API-Endpoints-Porteiro.md) ----
+
+/** PENDENTE_IDENT = sem unidade (o porteiro resolve ou a IA tenta depois). */
+export type StatusEncomenda = 'PENDENTE_IDENT' | 'AGUARDANDO' | 'RETIRADA' | 'CANCELADA';
+
+export type MetodoIdentificacao = 'REGEX' | 'NOME' | 'APRENDIZADO' | 'IA' | 'MANUAL';
+
+/** Encomenda como o porteiro ve (sem codigo de retirada). */
+export interface Encomenda {
+  id: number;
+  cliente_uuid: string;
+  status: StatusEncomenda;
+  /** null enquanto PENDENTE_IDENT. */
+  unidade_id: number | null;
+  unidade_descricao: string | null;
+  nome_destinatario: string | null;
+  transportadora: string | null;
+  rastreio: string | null;
+  /** 0 a 100, null se nao identificada. */
+  confianca: number | null;
+  metodo_ident: MetodoIdentificacao | null;
+  recebida_em: string;
+  recebida_por: string | null;
+}
+
+/** `dados` de GET /encomendas/{id}: encomenda + URL assinada da foto (30 min) ou null. */
+export interface EncomendaDetalhe extends Encomenda {
+  foto_url: string | null;
+}
+
+/** Corpo de POST /encomendas. */
+export interface NovaEncomendaRequisicao {
+  cliente_uuid: string;
+  /** JPEG em base64 (ate 1,5 MB decodificado). */
+  foto_base64: string;
+  texto_ocr?: string;
+}
+
+/** Corpo de PATCH /encomendas/{id}/unidade. */
+export interface DefinirUnidadeRequisicao {
+  unidade_id: number;
+  nome_destinatario?: string;
+}
+
+/** Item de GET /unidades/busca?q= (autocomplete, maximo 20). */
+export interface UnidadeBusca {
+  id: number;
+  descricao: string;
+}

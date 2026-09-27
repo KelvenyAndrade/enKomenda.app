@@ -7,9 +7,11 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "br.com.kds.enkomenda"
     },
     "android": {
+      "package": "br.com.kds.enkomenda",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -26,7 +28,17 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "O enKomenda usa a câmera para fotografar as etiquetas das encomendas recebidas na portaria.",
+          "enableMicrophonePermission": false,
+          "enableLocation": false,
+          "enableFrameProcessors": false,
+          "enableCodeScanner": false
+        }
+      ]
     ],
     "scheme": "enkomenda"
   }
